@@ -1,0 +1,140 @@
+import streamlit as st
+from datetime import date
+
+# -----------------------------
+# PAGE CONFIG
+# -----------------------------
+st.set_page_config(
+    page_title="AI Medication Adherence Input UI",
+    page_icon="💊",
+    layout="centered"
+)
+
+st.title("💊 AI-Assisted Medication Adherence Input")
+st.caption("Generate clean, structured input for LangFlow (UI only)")
+st.divider()
+
+# -----------------------------
+# SYSTEM DATE (CRITICAL ADD)
+# -----------------------------
+today = date.today().strftime("%d-%b-%Y")
+
+# -----------------------------
+# PATIENT DETAILS
+# -----------------------------
+st.subheader("🧑 Patient Information")
+name = st.text_input("Patient Name")
+age = st.number_input("Age", min_value=1, max_value=120)
+condition = st.text_input("Chronic Disease / Condition")
+
+st.divider()
+
+# -----------------------------
+# MEDICATION DETAILS
+# -----------------------------
+st.subheader("💊 Medications (Up to 3)")
+
+pill1 = st.text_input("Medicine 1 (required)")
+pill2 = st.text_input("Medicine 2 (optional)")
+pill3 = st.text_input("Medicine 3 (optional)")
+
+st.markdown("### 📅 7-Day Medication Intake Log")
+
+def intake_ui(pill_name, key_prefix):
+    days = {}
+    if pill_name:
+        st.markdown(f"**{pill_name}**")
+        cols = st.columns(7)
+        for i in range(7):
+            with cols[i]:
+                days[f"Day {i+1}"] = st.checkbox(
+                    f"D{i+1}",
+                    key=f"{key_prefix}_{i}"
+                )
+    return days
+
+pill1_days = intake_ui(pill1, "pill1")
+pill2_days = intake_ui(pill2, "pill2")
+pill3_days = intake_ui(pill3, "pill3")
+
+st.divider()
+
+# -----------------------------
+# REFILL HISTORY (ENHANCED)
+# -----------------------------
+st.subheader("📦 Refill History")
+
+last_refill_date = st.date_input(
+    "Last Refill Date",
+    value=date.today()
+)
+
+days_supply = st.number_input(
+    "Days of Medicine Supplied",
+    min_value=1,
+    max_value=180,
+    value=30
+)
+
+refill_managed_by = st.selectbox(
+    "Refill Managed By",
+    ["Self", "Caregiver", "Pharmacy Delivery"]
+)
+
+refill_timeliness = st.selectbox(
+    "Refill Timeliness",
+    ["On time", "Sometimes late", "Often late"]
+)
+
+st.divider()
+
+# -----------------------------
+# GENERATE LANGFLOW INPUT TEXT
+# -----------------------------
+if st.button("📝 Generate Text for LangFlow"):
+    if not name or not condition or not pill1:
+        st.warning("Please enter patient details and at least one medicine.")
+    else:
+        lines = []
+
+        # System context (VERY IMPORTANT FOR LANGFLOW)
+        lines.append(f"System Date (Today): {today}")
+
+        # Patient profile
+        lines.append("\nPatient Profile:")
+        lines.append(f"Patient Name: {name}")
+        lines.append(f"Age: {age}")
+        lines.append(f"Chronic Condition: {condition}")
+
+        # Refill context
+        lines.append("\nRefill History:")
+        lines.append(f"Last Refill Date: {last_refill_date.strftime('%d-%b-%Y')}")
+        lines.append(f"Days of Supply: {days_supply}")
+        lines.append(f"Refill Managed By: {refill_managed_by}")
+        lines.append(f"Refill Timeliness: {refill_timeliness}")
+
+        # Intake log
+        lines.append("\nMedication Intake Log (7 Days):")
+
+        def add_pill_data(pill, days):
+            if pill:
+                lines.append(f"\n{pill}:")
+                for day, taken in days.items():
+                    status = "Taken" if taken else "Missed"
+                    lines.append(f"{day}: {status}")
+
+        add_pill_data(pill1, pill1_days)
+        add_pill_data(pill2, pill2_days)
+        add_pill_data(pill3, pill3_days)
+
+        final_text = "\n".join(lines)
+
+        st.success("✅ Copy the text below and paste it into LangFlow")
+        st.text_area(
+            "📋 Generated Input Text",
+            value=final_text,
+            height=460
+        )
+
+st.markdown("---")
+st.caption("UI only • Date-aware • Refill-aware • Hackathon-ready")
